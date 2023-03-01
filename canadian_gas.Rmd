@@ -1,0 +1,56 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(fpp3)
+library(DT)
+library(scales)
+
+
+#canadian_gas <- canadian_gas[1:530,]
+canadian_gas <- as_tibble(canadian_gas)
+last_month <- max(canadian_gas$Month)
+
+last_vol <- canadian_gas%>%
+  filter(Month==max(Month))%>%
+  pull(Volume)
+prev_vol <- canadian_gas%>%
+  filter(Month==max(Month)-1)%>%
+  pull(Volume)
+growth_rate <- percent(last_vol/prev_vol-1, accuracy = .1)
+```
+
+Input {.sidebar}
+---------------------------------------------------
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### In the month `r last_month` the growth rate `r growth_rate`.
+
+```{r}
+ggplot(canadian_gas, aes(Month, Volume))+
+  geom_line()
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+canadian_gas%>%
+  arrange(desc(Month))%>%
+  mutate(Month=as.character(Month))%>%
+  datatable()
+```
+
