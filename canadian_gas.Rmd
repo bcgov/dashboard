@@ -12,34 +12,56 @@ library(flexdashboard)
 library(fpp3)
 library(DT)
 library(scales)
-
-
-#canadian_gas <- canadian_gas[1:530,]
-canadian_gas <- as_tibble(canadian_gas)
-last_month <- max(canadian_gas$Month)
-
-last_vol <- canadian_gas%>%
-  filter(Month==max(Month))%>%
-  pull(Volume)
-prev_vol <- canadian_gas%>%
-  filter(Month==max(Month)-1)%>%
-  pull(Volume)
-growth_rate <- percent(last_vol/prev_vol-1, accuracy = .1)
 ```
 
 Input {.sidebar}
 ---------------------------------------------------
+```{r}
+dateRangeInput(
+  "date_range",
+  "Choose a range of dates",
+  start = min(canadian_gas$Month),
+  end = max(canadian_gas$Month),
+  min = min(canadian_gas$Month),
+  max = max(canadian_gas$Month),
+  format = "yyyy-mm",
+  startview = "year"
+)
+#reactive------------------------
+
+reactive_gas <- reactive(canadian_gas%>%
+                           as_tibble()%>%
+                           filter(Month>=min(input$date_range),
+                                  Month<=max(input$date_range))
+  )
+
+
+last_month <- reactive(as.character(max(reactive_gas()$Month)))
+
+last_vol <- reactive(reactive_gas()%>%
+  filter(Month==max(Month))%>%
+  pull(Volume))
+prev_vol <- reactive( reactive_gas()%>%
+  filter(Month==max(Month)-1)%>%
+  pull(Volume))
+growth_rate <- reactive(percent(last_vol()/prev_vol()-1, accuracy = .1))
+
+
+
+```
 
 
 
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### In the month `r last_month` the growth rate `r growth_rate`.
+### In the month `r renderText(last_month())` the growth rate `r renderText(growth_rate())`.
 
 ```{r}
-ggplot(canadian_gas, aes(Month, Volume))+
+renderPlot(
+ggplot(reactive_gas(), aes(Month, Volume))+
   geom_line()
+)
 ```
 
 Column {data-width=350}
@@ -48,9 +70,11 @@ Column {data-width=350}
 ### Chart B
 
 ```{r}
-canadian_gas%>%
+renderDT(
+reactive_gas()%>%
   arrange(desc(Month))%>%
   mutate(Month=as.character(Month))%>%
   datatable()
+)
 ```
 
